@@ -1,4 +1,4 @@
-我把common库中RXJAVA1.X升级到2.X需要更新RxBus.java   Compressor.java RxCache RxHelper RxManager RxSchedulers RxSubscriber几个类 我已经上传
+我把common库中RXJAVA1.X升级到2.X需要更新build.gradle  RxBus.java   Compressor.java RxCache RxHelper RxManager RxSchedulers RxSubscriber几个类 我已经上传
 大家可以参考一下  2018/12/21
 
 
