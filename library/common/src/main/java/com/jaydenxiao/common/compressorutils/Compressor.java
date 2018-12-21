@@ -6,8 +6,6 @@ import android.net.Uri;
 
 import java.io.File;
 
-import rx.Observable;
-import rx.functions.Func0;
 
 /**
  * 压缩图片类
@@ -79,23 +77,23 @@ public class Compressor {
         return ImageUtil.getScaledBitmap(context, Uri.fromFile(file), maxWidth, maxHeight);
     }
 
-    public Observable<File> compressToFileAsObservable(final File file) {
-        return Observable.defer(new Func0<Observable<File>>() {
-            @Override
-            public Observable<File> call() {
-                return Observable.just(compressToFile(file));
-            }
-        });
-    }
-
-    public Observable<Bitmap> compressToBitmapAsObservable(final File file) {
-        return Observable.defer(new Func0<Observable<Bitmap>>() {
-            @Override
-            public Observable<Bitmap> call() {
-                return Observable.just(compressToBitmap(file));
-            }
-        });
-    }
+//    public Observable<File> compressToFileAsObservable(final File file) { TODO 暂时不会改，
+//        return Observable.defer(new Func0<Observable<File>>() {
+//            @Override
+//            public Observable<File> call() {
+//                return Observable.just(compressToFile(file));
+//            }
+//        });
+//    }
+//
+//    public Observable<Bitmap> compressToBitmapAsObservable(final File file) {
+//        return Observable.defer(new Func0<Observable<Bitmap>>() {
+//            @Override
+//            public Observable<Bitmap> call() {
+//                return Observable.just(compressToBitmap(file));
+//            }
+//        });
+//    }
 
     public static class Builder {
         private Compressor compressor;
