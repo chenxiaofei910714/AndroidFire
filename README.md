@@ -1,5 +1,22 @@
 我把common库中RXJAVA1.X升级到2.X需要更新RxBus.java   Compressor.java RxCache RxHelper RxManager RxSchedulers RxSubscriber几个类 我已经上传
-大家可以参考一下
+大家可以参考一下  2018/12/21
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 AndroidFire，一款新闻阅读 App框架，基于 Material Design + MVP + RxJava + Retrofit + Glide，基本涵盖了当前 Android 端开发最常用的主流框架，基于此框架可以快速开发一个app。
 
