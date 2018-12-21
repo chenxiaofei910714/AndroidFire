@@ -1,65 +1,132 @@
 package com.jaydenxiao.common.baserx;
 
-import java.util.HashMap;
-import java.util.Map;
+import android.support.annotation.NonNull;
+
+import com.jaydenxiao.common.commonutils.LogUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
+
 
 /**
- * 用于管理单个presenter的RxBus的事件和Rxjava相关代码的生命周期处理
+ * 用RxJava实现的EventBus
  * Created by xsf
  * on 2016.08.14:50
  */
-public class RxManager {
-    public RxBus mRxBus = RxBus.getInstance();
-    //管理rxbus订阅
-    private Map<String, Observable<?>> mObservables = new HashMap<>();
-    /*管理Observables 和 Subscribers订阅*/
-    private CompositeDisposable mCompositeSubscription = new CompositeDisposable();
+public class RxBus {
+    private static RxBus instance;
+
+    public static synchronized RxBus getInstance() {
+        if (null == instance) {
+            instance = new RxBus();
+        }
+        return instance;
+    }
+
+    private RxBus() {
+    }
+
+    @SuppressWarnings("rawtypes")
+    private ConcurrentHashMap<Object, List<Subject>> subjectMapper = new ConcurrentHashMap<Object, List<Subject>>();
 
     /**
-     * RxBus注入监听
-     * @param eventName
-     * @param action1
+     * 订阅事件源
+     *
+     * @param mObservable
+     * @param mAction1
+     * @return
      */
-    public <T>void on(String eventName, Consumer<T> action1) {
-        Observable<T> mObservable = mRxBus.register(eventName);
-        mObservables.put(eventName, mObservable);
-        /*订阅管理*/
-        mCompositeSubscription.add(mObservable.observeOn(AndroidSchedulers.mainThread())
-                .subscribe(action1, new Consumer<Throwable>() {
-                    @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        throwable.printStackTrace();
+    public RxBus OnEvent(Observable<?> mObservable, Consumer<Object> mAction1) {
+        mObservable.observeOn(AndroidSchedulers.mainThread()).subscribe(mAction1, new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                throwable.printStackTrace();
+            }
 
-                    }
-
-                }));
+        });
+        return getInstance();
     }
 
     /**
-     * 单纯的Observables 和 Subscribers管理
-     * @param m
+     * 注册事件源
+     *
+     * @param tag
+     * @return
      */
-    public void add(Disposable m) {
-        /*订阅管理*/
-        mCompositeSubscription.add(m);
+    @SuppressWarnings({"rawtypes"})
+    public <T> Observable<T> register(@NonNull Object tag) {
+        List<Subject> subjectList = subjectMapper.get(tag);
+        if (null == subjectList) {
+            subjectList = new ArrayList<Subject>();
+            subjectMapper.put(tag, subjectList);
+        }
+        Subject<T> subject;
+        subjectList.add(subject = PublishSubject.create());
+        LogUtils.logd("register"+tag + "  size:" + subjectList.size());
+        return subject;
     }
+
+    @SuppressWarnings("rawtypes")
+    public void unregister(@NonNull Object tag) {
+        List<Subject> subjects = subjectMapper.get(tag);
+        if (null != subjects) {
+            subjectMapper.remove(tag);
+        }
+    }
+
     /**
-     * 单个presenter生命周期结束，取消订阅和所有rxbus观察
+     * 取消监听
+     *
+     * @param tag
+     * @param observable
+     * @return
      */
-    public void clear() {
-        mCompositeSubscription.dispose();// 取消所有订阅
-        for (Map.Entry<String, Observable<?>> entry : mObservables.entrySet()) {
-            mRxBus.unregister(entry.getKey(), entry.getValue());// 移除rxbus观察
+    @SuppressWarnings("rawtypes")
+    public RxBus unregister(@NonNull Object tag,
+                            @NonNull Observable<?> observable) {
+        List<Subject> subjects = subjectMapper.get(tag);
+        if (null != subjects) {
+            subjects.remove((Subject<?>) observable);
+            if (isEmpty(subjects)) {
+                subjectMapper.remove(tag);
+                LogUtils.logd("unregister"+ tag + "  size:" + subjects.size());
+            }
+        }
+        return getInstance();
+    }
+
+    public void post(@NonNull Object content) {
+        post(content.getClass().getName(), content);
+    }
+
+    /**
+     * 触发事件
+     *
+     * @param content
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void post(@NonNull Object tag, @NonNull Object content) {
+        LogUtils.logd("post"+ "eventName: " + tag);
+        List<Subject> subjectList = subjectMapper.get(tag);
+        if (!isEmpty(subjectList)) {
+            for (Subject subject : subjectList) {
+                subject.onNext(content);
+                LogUtils.logd("onEvent"+ "eventName: " + tag);
+            }
         }
     }
-    //发送rxbus
-    public void post(Object tag, Object content) {
-        mRxBus.post(tag, content);
-        }
-        }
+
+    @SuppressWarnings("rawtypes")
+    public static boolean isEmpty(Collection<Subject> collection) {
+        return null == collection || collection.isEmpty();
+    }
+
+}

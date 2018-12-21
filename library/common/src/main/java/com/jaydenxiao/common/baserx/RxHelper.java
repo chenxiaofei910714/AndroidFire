@@ -3,11 +3,14 @@ package com.jaydenxiao.common.baserx;
 import com.jaydenxiao.common.basebean.BaseRespose;
 import com.jaydenxiao.common.commonutils.LogUtils;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * des:对服务器返回数据成功和失败处理
@@ -27,20 +30,22 @@ public class RxHelper {
      * @param <T>
      * @return
      */
-    public static <T> Observable.Transformer<BaseRespose<T>, T> handleResult() {
-        return new Observable.Transformer<BaseRespose<T>, T>() {
+    public static <T> ObservableTransformer<BaseRespose<T>, T> handleResult() {
+        return new ObservableTransformer<BaseRespose<T>, T>() {
             @Override
-            public Observable<T> call(Observable<BaseRespose<T>> tObservable) {
-                return tObservable.flatMap(new Func1<BaseRespose<T>, Observable<T>>() {
+            public ObservableSource<T> apply(Observable<BaseRespose<T>> upstream) {
+                return upstream.flatMap(new Function<BaseRespose<T>, ObservableSource<T>>() {
                     @Override
-                    public Observable<T> call(BaseRespose<T> result) {
-                        LogUtils.logd("result from api : " + result);
-                        if (result.success()) {
-                            return createData(result.data);
+                    public ObservableSource<T> apply(BaseRespose<T> tBaseRespose) throws Exception {
+                        LogUtils.logd("result from api : " + tBaseRespose);
+                        if (tBaseRespose.success()) {
+                            return createData(tBaseRespose.data);
                         } else {
-                            return Observable.error(new ServerException(result.msg));
+                            return Observable.error(new ServerException(tBaseRespose.msg));
                         }
                     }
+
+
                 }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread());
             }
         };
@@ -55,14 +60,15 @@ public class RxHelper {
      * @return
      */
     private static <T> Observable<T> createData(final T data) {
-        return Observable.create(new Observable.OnSubscribe<T>() {
+        return Observable.create(new ObservableOnSubscribe<T>() {
+
             @Override
-            public void call(Subscriber<? super T> subscriber) {
+            public void subscribe(ObservableEmitter<T> emitter) throws Exception {
                 try {
-                    subscriber.onNext(data);
-                    subscriber.onCompleted();
+                    emitter.onNext(data);
+                    emitter.onComplete();
                 } catch (Exception e) {
-                    subscriber.onError(e);
+                    emitter.onError(e);
                 }
             }
         });

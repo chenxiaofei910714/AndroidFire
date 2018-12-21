@@ -8,7 +8,11 @@ import com.jaydenxiao.common.R;
 import com.jaydenxiao.common.commonutils.NetWorkUtils;
 import com.jaydenxiao.common.commonwidget.LoadingDialog;
 
-import rx.Subscriber;
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.disposables.Disposables;
+
 
 /**
  * des:订阅封装
@@ -28,11 +32,12 @@ public void _onNext(User user) {
 public void _onError(String msg) {
         ToastUtil.showShort(mActivity, msg);
         });*/
-public abstract class RxSubscriber<T> extends Subscriber<T> {
+public abstract class RxSubscriber<T> implements Observer<T> {
 
     private Context mContext;
     private String msg;
     private boolean showDialog=true;
+    private RxManager mRxManager;
 
     /**
      * 是否显示浮动dialog
@@ -44,26 +49,27 @@ public abstract class RxSubscriber<T> extends Subscriber<T> {
         this.showDialog= true;
     }
 
-    public RxSubscriber(Context context, String msg,boolean showDialog) {
+    public RxSubscriber(Context context, String msg,boolean showDialog,RxManager mRxManager) {
         this.mContext = context;
         this.msg = msg;
         this.showDialog=showDialog;
+        this.mRxManager=mRxManager;
     }
-    public RxSubscriber(Context context) {
-        this(context, BaseApplication.getAppContext().getString(R.string.loading),true);
+    public RxSubscriber(Context context,RxManager mRxManager) {
+        this(context, BaseApplication.getAppContext().getString(R.string.loading),true,mRxManager);
     }
-    public RxSubscriber(Context context,boolean showDialog) {
-        this(context, BaseApplication.getAppContext().getString(R.string.loading),showDialog);
+    public RxSubscriber(Context context,boolean showDialog,RxManager mRxManager) {
+        this(context, BaseApplication.getAppContext().getString(R.string.loading),showDialog,mRxManager);
     }
 
     @Override
-    public void onCompleted() {
+    public void onComplete() {
         if (showDialog)
             LoadingDialog.cancelDialogForLoading();
     }
+
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onSubscribe(Disposable d) {
         if (showDialog) {
             try {
                 LoadingDialog.showDialogForLoading((Activity) mContext,msg,true);
@@ -71,6 +77,7 @@ public abstract class RxSubscriber<T> extends Subscriber<T> {
                 e.printStackTrace();
             }
         }
+        mRxManager.add(d);
     }
 
 
